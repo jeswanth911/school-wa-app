@@ -1,20 +1,12 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-
-function AdminDashboard() {
-  return <h1>👑 Admin Dashboard</h1>;
-}
-
-function SchoolDashboard() {
-  return <h1>🏫 School Dashboard</h1>;
-}
-
-function AgentDashboard() {
-  return <h1>📦 Agent Dashboard</h1>;
-}
+import AdminDashboard from "./pages/AdminDashboard";
+import SchoolDashboard from "./pages/SchoolDashboard";
+import AgentDashboard from "./pages/AgentDashboard";
 
 export default function App() {
   return (
@@ -29,5 +21,4 @@ export default function App() {
       </Routes>
     </Router>
   );
-  }
-
+}
