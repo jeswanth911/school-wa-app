@@ -11,6 +11,9 @@ export default function SchoolDashboard() {
   const [templateMessage, setTemplateMessage] = useState("");
   const [templates, setTemplates] = useState([]);
 
+  const [selectedStudent, setSelectedStudent] = useState("");
+  const [selectedTemplate, setSelectedTemplate] = useState("");
+
   const user = auth.currentUser;
 
   const addStudent = async () => {
@@ -27,7 +30,7 @@ export default function SchoolDashboard() {
       alert("Student added!");
       setName("");
       setPhone("");
-      fetchStudents(); // reload
+      fetchStudents();
     } catch (error) {
       console.error("Error adding student: ", error);
     }
@@ -71,6 +74,23 @@ export default function SchoolDashboard() {
     setTemplates(tempList);
   };
 
+  const handleSend = () => {
+    if (!selectedStudent || !selectedTemplate) {
+      alert("Please select both student and template");
+      return;
+    }
+
+    const student = JSON.parse(selectedStudent);
+    const template = JSON.parse(selectedTemplate);
+
+    let message = template.message
+      .replace("{name}", student.name || "")
+      .replace("{phone}", student.phone || "");
+
+    const url = `https://wa.me/91${student.phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+  };
+
   useEffect(() => {
     if (user) {
       fetchStudents();
@@ -82,6 +102,7 @@ export default function SchoolDashboard() {
     <div style={{ padding: "20px" }}>
       <h2>🏫 School Dashboard</h2>
 
+      {/* Add Student Section */}
       <h4>👤 Add Student</h4>
       <input
         type="text"
@@ -97,6 +118,7 @@ export default function SchoolDashboard() {
       /><br /><br />
       <button onClick={addStudent}>➕ Add Student</button>
 
+      {/* Student List */}
       <h4 style={{ marginTop: "30px" }}>📋 Student List</h4>
       <ul>
         {students.map((s, index) => (
@@ -104,6 +126,7 @@ export default function SchoolDashboard() {
         ))}
       </ul>
 
+      {/* Add Template Section */}
       <h4 style={{ marginTop: "30px" }}>🧾 Add Message Template</h4>
       <input
         type="text"
@@ -113,12 +136,13 @@ export default function SchoolDashboard() {
       /><br /><br />
       <textarea
         rows="4"
-        placeholder="Message Body"
+        placeholder="Message Body (use {name})"
         value={templateMessage}
         onChange={(e) => setTemplateMessage(e.target.value)}
       /><br /><br />
       <button onClick={addTemplate}>➕ Save Template</button>
 
+      {/* Template List */}
       <h4 style={{ marginTop: "30px" }}>📄 Your Templates</h4>
       <ul>
         {templates.map((t, idx) => (
@@ -127,6 +151,28 @@ export default function SchoolDashboard() {
           </li>
         ))}
       </ul>
+
+      {/* WhatsApp Send Section */}
+      <h4 style={{ marginTop: "30px" }}>📲 Send WhatsApp Reminder</h4>
+      <select onChange={(e) => setSelectedStudent(e.target.value)}>
+        <option value="">👥 Select Student</option>
+        {students.map((s, i) => (
+          <option key={i} value={JSON.stringify(s)}>
+            {s.name} - {s.phone}
+          </option>
+        ))}
+      </select><br /><br />
+
+      <select onChange={(e) => setSelectedTemplate(e.target.value)}>
+        <option value="">🧾 Select Template</option>
+        {templates.map((t, i) => (
+          <option key={i} value={JSON.stringify(t)}>
+            {t.title}
+          </option>
+        ))}
+      </select><br /><br />
+
+      <button onClick={handleSend}>📤 Send WhatsApp Message</button>
     </div>
   );
 }
