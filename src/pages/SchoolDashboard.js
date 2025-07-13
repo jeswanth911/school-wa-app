@@ -1,3 +1,49 @@
+import React, { useEffect, useState } from 'react';
+import { db } from '../firebase';
+import { collection, getDocs } from 'firebase/firestore';
+
+export default function AdminDashboard() {
+  const [schools, setSchools] = useState([]);
+
+  const fetchSchools = async () => {
+    const usersSnapshot = await getDocs(collection(db, 'users'));
+    const schoolsData = [];
+
+    for (const doc of usersSnapshot.docs) {
+      const uid = doc.id;
+      const studentSnap = await getDocs(collection(db, 'students', uid, 'list'));
+      const templateSnap = await getDocs(collection(db, 'templates', uid, 'list'));
+
+      schoolsData.push({
+        email: doc.data().email,
+        students: studentSnap.size,
+        templates: templateSnap.size,
+      });
+    }
+
+    setSchools(schoolsData);
+  };
+
+  useEffect(() => {
+    fetchSchools();
+  }, []);
+
+  return (
+    <div className="p-4">
+      <h2 className="text-xl font-bold">Admin Dashboard</h2>
+      {schools.map((s, i) => (
+        <div key={i} className="mt-2 p-3 border rounded shadow">
+          <p><strong>Email:</strong> {s.email}</p>
+          <p>👥 Students: {s.students} | 🧾 Templates: {s.templates}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// =========================
+// 🏫 SchoolDashboard.js
+// =========================
 import React, { useState, useEffect } from "react";
 import { auth, db } from "../firebase";
 import { collection, addDoc, getDocs } from "firebase/firestore";
@@ -6,11 +52,9 @@ export default function SchoolDashboard() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [students, setStudents] = useState([]);
-
   const [templateTitle, setTemplateTitle] = useState("");
   const [templateMessage, setTemplateMessage] = useState("");
   const [templates, setTemplates] = useState([]);
-
   const [selectedStudent, setSelectedStudent] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("");
 
@@ -85,7 +129,8 @@ export default function SchoolDashboard() {
 
     let message = template.message
       .replace("{name}", student.name || "")
-      .replace("{phone}", student.phone || "");
+      .replace("{amount}", student.amount || "")
+      .replace("{due_date}", student.due_date || "");
 
     const url = `https://wa.me/91${student.phone}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
@@ -101,78 +146,30 @@ export default function SchoolDashboard() {
   return (
     <div style={{ padding: "20px" }}>
       <h2>🏫 School Dashboard</h2>
-
-      {/* Add Student Section */}
-      <h4>👤 Add Student</h4>
-      <input
-        type="text"
-        placeholder="Student Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      /><br /><br />
-      <input
-        type="text"
-        placeholder="Phone Number"
-        value={phone}
-        onChange={(e) => setPhone(e.target.value)}
-      /><br /><br />
+      <input placeholder="Student Name" value={name} onChange={(e) => setName(e.target.value)} /><br /><br />
+      <input placeholder="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} /><br /><br />
       <button onClick={addStudent}>➕ Add Student</button>
+      <h4>📋 Student List</h4>
+      <ul>{students.map((s, i) => <li key={i}>{s.name} - {s.phone}</li>)}</ul>
 
-      {/* Student List */}
-      <h4 style={{ marginTop: "30px" }}>📋 Student List</h4>
-      <ul>
-        {students.map((s, index) => (
-          <li key={index}>{s.name} - {s.phone}</li>
-        ))}
-      </ul>
-
-      {/* Add Template Section */}
-      <h4 style={{ marginTop: "30px" }}>🧾 Add Message Template</h4>
-      <input
-        type="text"
-        placeholder="Template Title"
-        value={templateTitle}
-        onChange={(e) => setTemplateTitle(e.target.value)}
-      /><br /><br />
-      <textarea
-        rows="4"
-        placeholder="Message Body (use {name})"
-        value={templateMessage}
-        onChange={(e) => setTemplateMessage(e.target.value)}
-      /><br /><br />
+      <h4>🧾 Add Template</h4>
+      <input placeholder="Template Title" value={templateTitle} onChange={(e) => setTemplateTitle(e.target.value)} /><br /><br />
+      <textarea placeholder="Message Body (use {name})" value={templateMessage} onChange={(e) => setTemplateMessage(e.target.value)} /><br /><br />
       <button onClick={addTemplate}>➕ Save Template</button>
 
-      {/* Template List */}
-      <h4 style={{ marginTop: "30px" }}>📄 Your Templates</h4>
-      <ul>
-        {templates.map((t, idx) => (
-          <li key={idx}>
-            <strong>{t.title}</strong>: {t.message}
-          </li>
-        ))}
-      </ul>
+      <h4>📄 Your Templates</h4>
+      <ul>{templates.map((t, i) => <li key={i}><strong>{t.title}</strong>: {t.message}</li>)}</ul>
 
-      {/* WhatsApp Send Section */}
-      <h4 style={{ marginTop: "30px" }}>📲 Send WhatsApp Reminder</h4>
+      <h4>📲 Send WhatsApp</h4>
       <select onChange={(e) => setSelectedStudent(e.target.value)}>
-        <option value="">👥 Select Student</option>
-        {students.map((s, i) => (
-          <option key={i} value={JSON.stringify(s)}>
-            {s.name} - {s.phone}
-          </option>
-        ))}
+        <option value="">Select Student</option>
+        {students.map((s, i) => <option key={i} value={JSON.stringify(s)}>{s.name}</option>)}
       </select><br /><br />
-
       <select onChange={(e) => setSelectedTemplate(e.target.value)}>
-        <option value="">🧾 Select Template</option>
-        {templates.map((t, i) => (
-          <option key={i} value={JSON.stringify(t)}>
-            {t.title}
-          </option>
-        ))}
+        <option value="">Select Template</option>
+        {templates.map((t, i) => <option key={i} value={JSON.stringify(t)}>{t.title}</option>)}
       </select><br /><br />
-
-      <button onClick={handleSend}>📤 Send WhatsApp Message</button>
+      <button onClick={handleSend}>📤 Send WhatsApp</button>
     </div>
   );
-}
+    }
